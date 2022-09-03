@@ -70,7 +70,6 @@ function login($usuario, $password)
     return $errors;
 }
 
-
 function lastSession($id)
 {
     global $mysqli;
@@ -122,6 +121,48 @@ function usuarioExiste($usuario)
 
     if ($num > 0) {
         return true;
+    } else {
+        return false;
+    }
+}
+
+function getValor($campo, $campoWhere, $valor)
+{
+    global $mysqli;
+
+    $stmt = $mysqli->prepare("SELECT $campo FROM usuarios WHERE $campoWhere = ? LIMIT 1");
+    $stmt->bind_param('s', $valor);
+    $stmt->execute();
+    $stmt->store_result();
+    $num = $stmt->num_rows;
+
+    if ($num > 0) {
+        $stmt->bind_result($_campo);
+        $stmt->fetch();
+        return $_campo;
+    } else {
+        return null;
+    }
+}
+
+function verificaTokenPass($user_id, $token)
+{
+
+    global $mysqli;
+    $stmt = $mysqli->prepare("SELECT estado FROM usuarios WHERE id_usuario=? AND token_password = ? AND password_request = 1 LIMIT 1");
+    $stmt->bind_param('is', $user_id, $token);
+    $stmt->execute();
+    $stmt->store_result();
+    $num = $stmt->num_rows;
+
+    if ($num > 0) {
+        $stmt->bind_result($estado);
+        $stmt->fetch();
+        if ($estado == 1) {
+            return true;
+        } else {
+            return false;
+        }
     } else {
         return false;
     }
@@ -209,10 +250,38 @@ function generaToken()
     return $gen;
 }
 
+function generaTokenPass($user_id)
+{
+    global $mysqli;
+
+    $token = generaToken();
+
+    $stmt = $mysqli->prepare("UPDATE usuarios SET token_password = ?, password_request = 1 WHERE id_usuario = ?");
+    $stmt->bind_param('ss', $token, $user_id);
+    $stmt->execute();
+    $stmt->close();
+
+    return $token;
+}
+
 function hashPassword($contraseña)
 {
     $hash = password_hash($contraseña, PASSWORD_DEFAULT);
     return $hash;
+}
+
+function cambiar_contraseña($password, $user_id, $token)
+{
+    global $mysqli;
+
+    $stmt = $mysqli->prepare("UPDATE usuarios SET contraseña = ?, token_password='', password_request=0 WHERE id_usuario = ? AND token_password = ?");
+    $stmt->bind_param('sis', $password, $user_id, $token);
+
+    if ($stmt->execute()) {
+        return true;
+    } else {
+        return false;
+    }
 }
 
 function registrarUsuario($cedula, $tarjetaProfesional, $nombres, $apellidos, $correo, $celular, $municipio, $departamento, $usuario, $pass_hash, $token, $id_rol, $estado)
@@ -258,8 +327,6 @@ function enviaremail($email, $nombres, $apellidos, $asunto, $cuerpo)
     $mail->isHTML(true);
     $mail->CharSet = 'UTF-8';
     $mail->Body = $cuerpo;
-
-    $mail->send();
 
     if ($mail->send())
         return true;

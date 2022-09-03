@@ -62,7 +62,7 @@ if (!empty($_POST)) {
 											</div> -->
 										</div>
 										<div class="form-group d-flex align-items-center justify-content-between mt-4 mb-0">
-											<a class="small" href="password.html">Olvido su contraseña?</a>
+											<a class="small" href="recuperarContraseña.php">Olvido su contraseña?</a>
 											<button type="submit" class="btn btn-primary">Iniciar sesión</button>
 										</div>
 									</form>
